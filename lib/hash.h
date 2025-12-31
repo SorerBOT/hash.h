@@ -111,6 +111,7 @@ void hash_set(hash_table_t* table, const char* key, void* value)
         }
     }
 
+    table->current_occupancy++;
     if (node_first->key == NULL)
     {
         *node_first = (hash_linked_list_t)
