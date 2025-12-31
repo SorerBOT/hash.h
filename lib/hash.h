@@ -37,7 +37,7 @@ static hash_linked_list_t* hash__internal_find_key_in_list(hash_linked_list_t* n
 static hash_linked_list_t* hash__internal_find_key_in_list(hash_linked_list_t* node_first, const char* key)
 {
     hash_linked_list_t* current_node = node_first;
-    while (current_node != NULL)
+    while (current_node != NULL && current_node->key != NULL)
     {
         if ( strcmp(current_node->key, key) == 0 )
         {
@@ -58,10 +58,10 @@ hash_table_t* hash_init()
 
     for (size_t i = 0; i < HASH_INITIAL_SIZE; ++i)
     {
-        data->key = NULL;
-        data->last_node = NULL;
-        data->next_node = NULL;
-        data->value = NULL;
+        data[i].key = NULL;
+        data[i].last_node = NULL;
+        data[i].next_node = NULL;
+        data[i].value = NULL;
     }
 
     hash_table_t* table = malloc(sizeof(hash_table_t));
@@ -100,7 +100,7 @@ void hash_set(hash_table_t* table, const char* key, void* value)
     size_t hashed_key = hash_key(key);
     hash_linked_list_t* node_first = &table->data[hashed_key % table->size];
 
-    if (node_first->last_node != NULL)
+    if (node_first->key != NULL)
     {
         hash_linked_list_t* entry = hash__internal_find_key_in_list(node_first, key);
 
@@ -139,7 +139,7 @@ void hash_set(hash_table_t* table, const char* key, void* value)
         .next_node = NULL
     };
 
-    node_first->last_node = new_node;
+    node_first->last_node->next_node = new_node;
 }
 void* hash_get(hash_table_t* table, const char* key)
 {

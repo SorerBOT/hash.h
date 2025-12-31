@@ -13,6 +13,10 @@ CUNIT_TEST(hash)
 
     int x = 5;
     int y = 19;
+    int z = 99;
+    int p = 888;
+    int l = 90;
+
     hash_set(table, "sha256", &x);
     CUNIT_ASSERT_INT_EQ(table->current_occupancy, 1);
     int* value = hash_get(table, "sha256");
@@ -24,4 +28,22 @@ CUNIT_TEST(hash)
     CUNIT_ASSERT_INT_EQ(table->current_occupancy, 1);
     CUNIT_ASSERT_PTR_NOT_NULL(value);
     CUNIT_ASSERT_INT_EQ(*value, 19);
+
+    hash_set(table, "cool_key", &z);
+    value = hash_get(table, "cool_key");
+    CUNIT_ASSERT_INT_EQ(table->current_occupancy, 2);
+    CUNIT_ASSERT_PTR_NOT_NULL(value);
+    CUNIT_ASSERT_INT_EQ(*value, 99);
+
+    hash_set(table, "boop", &p);
+    value = hash_get(table, "boop");
+    CUNIT_ASSERT_INT_EQ(table->current_occupancy, 3);
+    CUNIT_ASSERT_PTR_NOT_NULL(value);
+    CUNIT_ASSERT_INT_EQ(*value, 888);
+
+    hash_set(table, "loop", &l);
+    value = hash_get(table, "loop");
+    CUNIT_ASSERT_INT_EQ(table->current_occupancy, 4);
+    CUNIT_ASSERT_PTR_NOT_NULL(value);
+    CUNIT_ASSERT_INT_EQ(*value, 90);
 }
