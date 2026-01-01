@@ -21,13 +21,14 @@ typedef struct
 {
     size_t size;
     size_t current_occupancy;
-    hash_linked_list_t* data;
+    hash_linked_list_t* data; /* array of linked lists, each linked list contains all colliding keys */
 } hash_table_t;
 
 hash_table_t* hash_init();
 size_t hash_key(const char* key);
 void hash_set(hash_table_t* table, const char* key, void* value);
 void* hash_get(hash_table_t* table, const char* key);
+const char** hash_get_all_keys(hash_table_t* table);
 
 #endif /* HASH_H */
 
@@ -175,7 +176,7 @@ void hash_set(hash_table_t* table, const char* key, void* value)
     hash_linked_list_t* last_node = hash__internal_find_last_node(node_first);
     if (last_node == NULL)
     {
-        fprintf(stderr, "hash table corrupted.");
+        fprintf(stderr, "hash table corrupted. item is empty\n");
         exit(EXIT_FAILURE);
     }
 
@@ -206,6 +207,32 @@ void* hash_get(hash_table_t* table, const char* key)
         return NULL;
     }
     return sought_item->value;
+}
+
+const char** hash_get_all_keys(hash_table_t* table)
+{
+    const char** all_keys = malloc(table->current_occupancy * sizeof(char*));
+    size_t inserted_items_count = 0;
+
+    for (size_t i = 0; i < table->size; ++i)
+    {
+        hash_linked_list_t* current_node = &table->data[i];
+        while (current_node != NULL)
+        {
+            if (current_node->key != NULL)
+            {
+                all_keys[inserted_items_count] = current_node->key;
+                ++inserted_items_count;
+            }
+            current_node = current_node->next_node;
+        }
+    }
+
+    if (inserted_items_count != table->current_occupancy)
+    {
+        fprintf(stderr, "hash table corrupted. keys are either in excess or are missing.\n");
+    }
+    return all_keys;
 }
 
 #endif /* HASH_IMPLEMENTATION */

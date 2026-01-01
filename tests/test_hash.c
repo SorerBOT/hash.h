@@ -46,4 +46,10 @@ CUNIT_TEST(hash)
     CUNIT_ASSERT_INT_EQ(table->current_occupancy, 4);
     CUNIT_ASSERT_PTR_NOT_NULL(value);
     CUNIT_ASSERT_INT_EQ(*value, 90);
+
+    const char** all_keys = hash_get_all_keys(table);
+    for (size_t i = 0; i < table->current_occupancy; ++i)
+    {
+        printf("%lu: key: %s\n", i, all_keys[i]);
+    }
 }
