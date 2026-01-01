@@ -2,6 +2,8 @@
 #define HASH_H
 
 #define HASH_INITIAL_SIZE 16
+#define HASH_EXPANSION_RATE 2
+#define HASH_OCCUPANY_RATE 0.7f
 
 #include <stddef.h>
 #include <stdlib.h>
@@ -11,7 +13,6 @@
 typedef struct _hash_linked_list_t
 {
     struct _hash_linked_list_t* next_node;
-    struct _hash_linked_list_t* last_node;
     const char* key;
     void* value;
 } hash_linked_list_t;
@@ -33,13 +34,33 @@ void* hash_get(hash_table_t* table, const char* key);
 #ifdef HASH_IMPLEMENTATION
 
 static hash_linked_list_t* hash__internal_find_key_in_list(hash_linked_list_t* node_first, const char* key);
+static hash_linked_list_t* hash__internal_find_first_empty_node(hash_linked_list_t* node_first);
+static hash_linked_list_t* hash__internal_find_last_node(hash_linked_list_t* node_first);
+static hash_table_t* hash__internal_expand_table(hash_table_t* table);
 
 static hash_linked_list_t* hash__internal_find_key_in_list(hash_linked_list_t* node_first, const char* key)
 {
     hash_linked_list_t* current_node = node_first;
-    while (current_node != NULL && current_node->key != NULL)
+    while (current_node != NULL)
     {
-        if ( strcmp(current_node->key, key) == 0 )
+        if (current_node->key != NULL)
+        {
+            if ( strcmp(current_node->key, key) == 0 )
+            {
+                return current_node;
+            }
+        }
+        current_node = current_node->next_node;
+    }
+    return NULL;
+}
+
+static hash_linked_list_t* hash__internal_find_first_empty_node(hash_linked_list_t* node_first)
+{
+    hash_linked_list_t* current_node = node_first;
+    while (current_node != NULL)
+    {
+        if (current_node->key == NULL)
         {
             return current_node;
         }
@@ -47,6 +68,32 @@ static hash_linked_list_t* hash__internal_find_key_in_list(hash_linked_list_t* n
     }
     return NULL;
 }
+
+/* I know {node_first} will never be NULL (by the context of where I use this function).
+ * But my general mentality here is to prevent headaches while demonstrating a POC, and not to write spaceship-grade performing code
+ */
+static hash_linked_list_t* hash__internal_find_last_node(hash_linked_list_t* node_first)
+{
+    hash_linked_list_t* current_node = node_first;
+    if (current_node == NULL)
+    {
+        return NULL;
+    }
+
+    while (current_node->next_node != NULL)
+    {
+        current_node = current_node->next_node;
+    }
+    return current_node;
+}
+
+//static hash_table_t* hash__internal_expand_table(hash_table_t* table)
+//{
+//    size_t new_size = table->size * HASH_EXPANSION_RATE;
+//    hash_linked_list_t* new_data = malloc(new_size * sizeof(hash_linked_list_t));
+//    if ()
+//}
+
 hash_table_t* hash_init()
 {
     hash_linked_list_t* data = malloc(HASH_INITIAL_SIZE * sizeof(hash_linked_list_t));
@@ -59,7 +106,6 @@ hash_table_t* hash_init()
     for (size_t i = 0; i < HASH_INITIAL_SIZE; ++i)
     {
         data[i].key = NULL;
-        data[i].last_node = NULL;
         data[i].next_node = NULL;
         data[i].value = NULL;
     }
@@ -97,31 +143,40 @@ size_t hash_key(const char* key)
 
 void hash_set(hash_table_t* table, const char* key, void* value)
 {
+    //if (table->current_occupancy / (float)table->size >= HASH_OCCUPANY_RATE)
+    //{
+    //    hash__internal_expand_table(table);
+    //}
+
     size_t hashed_key = hash_key(key);
     hash_linked_list_t* node_first = &table->data[hashed_key % table->size];
 
-    if (node_first->key != NULL)
+    hash_linked_list_t* entry = hash__internal_find_key_in_list(node_first, key);
+    if (entry != NULL)
     {
-        hash_linked_list_t* entry = hash__internal_find_key_in_list(node_first, key);
-
-        if (entry != NULL)
-        {
-            entry->value = value;
-            return;
-        }
+        entry->value = value;
+        return;
     }
 
     table->current_occupancy++;
-    if (node_first->key == NULL)
+
+    hash_linked_list_t* first_empty_node = hash__internal_find_first_empty_node(node_first);
+    if (first_empty_node != NULL)
     {
-        *node_first = (hash_linked_list_t)
+        *first_empty_node = (hash_linked_list_t)
         {
             .key = key,
             .value = value,
-            .last_node = node_first,
             .next_node = NULL
         };
         return;
+    }
+
+    hash_linked_list_t* last_node = hash__internal_find_last_node(node_first);
+    if (last_node == NULL)
+    {
+        fprintf(stderr, "hash table corrupted.");
+        exit(EXIT_FAILURE);
     }
 
     hash_linked_list_t* new_node = malloc(sizeof(hash_linked_list_t));
@@ -135,12 +190,12 @@ void hash_set(hash_table_t* table, const char* key, void* value)
     {
         .key = key,
         .value = value,
-        .last_node = new_node,
         .next_node = NULL
     };
 
-    node_first->last_node->next_node = new_node;
+    last_node->next_node = new_node;
 }
+
 void* hash_get(hash_table_t* table, const char* key)
 {
     size_t hashed_key = hash_key(key);
