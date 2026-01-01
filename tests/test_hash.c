@@ -52,4 +52,10 @@ CUNIT_TEST(hash)
     {
         printf("%lu: key: %s\n", i, all_keys[i]);
     }
+
+    const int** all_values = (const int**) hash_get_all_values(table);
+    for (size_t i = 0; i < table->current_occupancy; ++i)
+    {
+        printf("%lu: value: %d\n", i, *all_values[i]);
+    }
 }
