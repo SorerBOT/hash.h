@@ -10,11 +10,16 @@
 #include <stdio.h>
 #include <string.h>
 
+typedef struct
+{
+    const char* key;
+    const void* value;
+} hash_key_value;
+
 typedef struct _hash_linked_list_t
 {
     struct _hash_linked_list_t* next_node;
-    const char* key;
-    void* value;
+    hash_key_value key_value;
 } hash_linked_list_t;
 
 typedef struct
@@ -24,12 +29,14 @@ typedef struct
     hash_linked_list_t* data; /* array of linked lists, each linked list contains all colliding keys */
 } hash_table_t;
 
+
 hash_table_t* hash_init();
 size_t hash_key(const char* key);
 void hash_set(hash_table_t* table, const char* key, void* value);
 void* hash_get(hash_table_t* table, const char* key);
 const char** hash_get_all_keys(hash_table_t* table);
 const void** hash_get_all_values(hash_table_t* table);
+const void** hash_get_all_key_values(hash_table_t* table);
 
 #endif /* HASH_H */
 
@@ -45,9 +52,9 @@ static hash_linked_list_t* hash__internal_find_key_in_list(hash_linked_list_t* n
     hash_linked_list_t* current_node = node_first;
     while (current_node != NULL)
     {
-        if (current_node->key != NULL)
+        if (current_node->key_value.key != NULL)
         {
-            if ( strcmp(current_node->key, key) == 0 )
+            if ( strcmp(current_node->key_value.key, key) == 0 )
             {
                 return current_node;
             }
@@ -62,7 +69,7 @@ static hash_linked_list_t* hash__internal_find_first_empty_node(hash_linked_list
     hash_linked_list_t* current_node = node_first;
     while (current_node != NULL)
     {
-        if (current_node->key == NULL)
+        if (current_node->key_value.key == NULL)
         {
             return current_node;
         }
@@ -107,9 +114,9 @@ hash_table_t* hash_init()
 
     for (size_t i = 0; i < HASH_INITIAL_SIZE; ++i)
     {
-        data[i].key = NULL;
         data[i].next_node = NULL;
-        data[i].value = NULL;
+        data[i].key_value.key = NULL;
+        data[i].key_value.value = NULL;
     }
 
     hash_table_t* table = malloc(sizeof(hash_table_t));
@@ -156,7 +163,7 @@ void hash_set(hash_table_t* table, const char* key, void* value)
     hash_linked_list_t* entry = hash__internal_find_key_in_list(node_first, key);
     if (entry != NULL)
     {
-        entry->value = value;
+        entry->key_value.value = value;
         return;
     }
 
@@ -167,8 +174,11 @@ void hash_set(hash_table_t* table, const char* key, void* value)
     {
         *first_empty_node = (hash_linked_list_t)
         {
-            .key = key,
-            .value = value,
+            .key_value = (hash_key_value)
+            {
+                .key = key,
+                .value = value
+            },
             .next_node = NULL
         };
         return;
@@ -190,9 +200,12 @@ void hash_set(hash_table_t* table, const char* key, void* value)
 
     *new_node = (hash_linked_list_t)
     {
-        .key = key,
-        .value = value,
-        .next_node = NULL
+        .next_node = NULL,
+        .key_value = (hash_key_value)
+        {
+            .key = key,
+            .value = value
+        }
     };
 
     last_node->next_node = new_node;
@@ -207,7 +220,7 @@ void* hash_get(hash_table_t* table, const char* key)
     {
         return NULL;
     }
-    return sought_item->value;
+    return sought_item->key_value.value;
 }
 
 const char** hash_get_all_keys(hash_table_t* table)
@@ -220,9 +233,9 @@ const char** hash_get_all_keys(hash_table_t* table)
         hash_linked_list_t* current_node = &table->data[i];
         while (current_node != NULL)
         {
-            if (current_node->key != NULL)
+            if (current_node->key_value.key != NULL)
             {
-                all_keys[inserted_items_count] = current_node->key;
+                all_keys[inserted_items_count] = current_node->key_value.key;
                 ++inserted_items_count;
             }
             current_node = current_node->next_node;
@@ -247,9 +260,9 @@ const void** hash_get_all_values(hash_table_t* table)
         hash_linked_list_t* current_node = &table->data[i];
         while (current_node != NULL)
         {
-            if (current_node->key != NULL)
+            if (current_node->key_value.value != NULL)
             {
-                all_values[inserted_items_count] = current_node->value;
+                all_values[inserted_items_count] = current_node->key_value.value;
                 ++inserted_items_count;
             }
             current_node = current_node->next_node;
