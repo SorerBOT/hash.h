@@ -73,8 +73,8 @@ CUNIT_TEST(hash)
     CUNIT_ASSERT_PTR_NOT_NULL(value);
     CUNIT_ASSERT_INT_EQ(*value, values[4]);
 
-    //const char** all_keys = hash_get_all_keys(table);
-    //CUNIT_ASSERT_ARRAY_IS_PERMUTATION(keys, all_keys, sizeof(x), 4); /* this won't work. It compares memory addresses instead of comparing the strings */
+    const char** all_keys = hash_get_all_keys(table);
+    CUNIT_ASSERT_ARRAY_STRINGS_IS_PERMUTATION(keys, all_keys, 4);
 
     const int** all_values = (const int**) hash_get_all_values(table);
     int* all_values_dereferenced = malloc(table->current_occupancy * sizeof(int));
