@@ -3,7 +3,8 @@
 
 #define HASH_INITIAL_SIZE 16
 #define HASH_EXPANSION_RATE 2
-#define HASH_OCCUPANY_RATE 0.7f
+#define HASH_OCCUPANY_RATE 3
+
 
 #include <stddef.h>
 #include <stdlib.h>
@@ -45,7 +46,8 @@ hash_key_value_t* hash_get_all_key_values(hash_table_t* table);
 static hash_linked_list_t* hash__internal_find_key_in_list(hash_linked_list_t* node_first, const char* key);
 static hash_linked_list_t* hash__internal_find_first_empty_node(hash_linked_list_t* node_first);
 static hash_linked_list_t* hash__internal_find_last_node(hash_linked_list_t* node_first);
-static hash_table_t* hash__internal_expand_table(hash_table_t* table);
+static void hash__internal_expand_table(hash_table_t* table);
+static void hash__internal_set_in_data(hash_linked_list_t* data, size_t size, const char* key, const void* value);
 
 static hash_linked_list_t* hash__internal_find_key_in_list(hash_linked_list_t* node_first, const char* key)
 {
@@ -96,11 +98,76 @@ static hash_linked_list_t* hash__internal_find_last_node(hash_linked_list_t* nod
     return current_node;
 }
 
-static hash_table_t* hash__internal_expand_table(hash_table_t* table)
+static void hash__internal_expand_table(hash_table_t* table)
 {
     size_t new_size = table->size * HASH_EXPANSION_RATE;
     hash_linked_list_t* new_data = malloc(new_size * sizeof(hash_linked_list_t));
-    return NULL;
+    hash_key_value_t* key_values = hash_get_all_key_values(table);
+
+    for (size_t i = 0; i < table->current_occupancy; ++i)
+    {
+        hash_key_value_t key_value = key_values[i];
+        hash__internal_set_in_data(new_data, new_size, key_value.key, key_value.value);
+    }
+
+    free(table->data);
+
+    table->data = new_data;
+    table->size = new_size;
+}
+
+static void hash__internal_set_in_data(hash_linked_list_t* data, size_t size, const char* key, const void* value)
+{
+    size_t hashed_key = hash_key(key);
+    hash_linked_list_t* node_first = &data[hashed_key % size];
+
+    hash_linked_list_t* entry = hash__internal_find_key_in_list(node_first, key);
+    if (entry != NULL)
+    {
+        entry->key_value.value = value;
+        return;
+    }
+
+    hash_linked_list_t* first_empty_node = hash__internal_find_first_empty_node(node_first);
+    if (first_empty_node != NULL)
+    {
+        *first_empty_node = (hash_linked_list_t)
+        {
+            .key_value = (hash_key_value_t)
+            {
+                .key = key,
+                .value = value
+            },
+            .next_node = NULL
+        };
+        return;
+    }
+
+    hash_linked_list_t* last_node = hash__internal_find_last_node(node_first);
+    if (last_node == NULL)
+    {
+        fprintf(stderr, "hash table corrupted. item is empty\n");
+        exit(EXIT_FAILURE);
+    }
+
+    hash_linked_list_t* new_node = malloc(sizeof(hash_linked_list_t));
+    if (new_node == NULL)
+    {
+        perror("malloc()");
+        exit(EXIT_FAILURE);
+    }
+
+    *new_node = (hash_linked_list_t)
+    {
+        .next_node = NULL,
+        .key_value = (hash_key_value_t)
+        {
+            .key = key,
+            .value = value
+        }
+    };
+
+    last_node->next_node = new_node;
 }
 
 hash_table_t* hash_init()
@@ -152,10 +219,10 @@ size_t hash_key(const char* key)
 
 void hash_set(hash_table_t* table, const char* key, void* value)
 {
-    //if (table->current_occupancy / (float)table->size >= HASH_OCCUPANY_RATE)
-    //{
-    //    hash__internal_expand_table(table);
-    //}
+    if (table->current_occupancy / (float)table->size >= HASH_OCCUPANY_RATE)
+    {
+        hash__internal_expand_table(table);
+    }
 
     size_t hashed_key = hash_key(key);
     hash_linked_list_t* node_first = &table->data[hashed_key % table->size];
@@ -245,6 +312,7 @@ const char** hash_get_all_keys(hash_table_t* table)
     if (inserted_items_count != table->current_occupancy)
     {
         fprintf(stderr, "hash table corrupted. Found %lu items out of supposed %lu items.\n", inserted_items_count, table->current_occupancy);
+        exit(EXIT_FAILURE);
     }
     return all_keys;
 }
@@ -272,6 +340,7 @@ const void** hash_get_all_values(hash_table_t* table)
     if (inserted_items_count != table->current_occupancy)
     {
         fprintf(stderr, "hash table corrupted. Found %lu items out of supposed %lu items.\n", inserted_items_count, table->current_occupancy);
+        exit(EXIT_FAILURE);
     }
 
     return all_values;
@@ -300,6 +369,7 @@ hash_key_value_t* hash_get_all_key_values(hash_table_t* table)
     if (inserted_items_count != table->current_occupancy)
     {
         fprintf(stderr, "hash table corrupted. Found %lu items out of supposed %lu items.\n", inserted_items_count, table->current_occupancy);
+        exit(EXIT_FAILURE);
     }
 
     return all_key_values;

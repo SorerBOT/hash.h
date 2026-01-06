@@ -19,7 +19,7 @@ CUNIT_TEST(hash)
 
     hash_set(table, "sha256", &x);
     CUNIT_ASSERT_INT_EQ(table->current_occupancy, 1);
-    int* value = hash_get(table, "sha256");
+    const int* value = hash_get(table, "sha256");
     CUNIT_ASSERT_PTR_NOT_NULL(value);
     CUNIT_ASSERT_INT_EQ(*value, 5);
 
