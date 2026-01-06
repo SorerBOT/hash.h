@@ -14,12 +14,12 @@ typedef struct
 {
     const char* key;
     const void* value;
-} hash_key_value;
+} hash_key_value_t;
 
 typedef struct _hash_linked_list_t
 {
     struct _hash_linked_list_t* next_node;
-    hash_key_value key_value;
+    hash_key_value_t key_value;
 } hash_linked_list_t;
 
 typedef struct
@@ -33,10 +33,10 @@ typedef struct
 hash_table_t* hash_init();
 size_t hash_key(const char* key);
 void hash_set(hash_table_t* table, const char* key, void* value);
-void* hash_get(hash_table_t* table, const char* key);
+const void* hash_get(hash_table_t* table, const char* key);
 const char** hash_get_all_keys(hash_table_t* table);
 const void** hash_get_all_values(hash_table_t* table);
-const void** hash_get_all_key_values(hash_table_t* table);
+hash_key_value_t* hash_get_all_key_values(hash_table_t* table);
 
 #endif /* HASH_H */
 
@@ -174,7 +174,7 @@ void hash_set(hash_table_t* table, const char* key, void* value)
     {
         *first_empty_node = (hash_linked_list_t)
         {
-            .key_value = (hash_key_value)
+            .key_value = (hash_key_value_t)
             {
                 .key = key,
                 .value = value
@@ -201,7 +201,7 @@ void hash_set(hash_table_t* table, const char* key, void* value)
     *new_node = (hash_linked_list_t)
     {
         .next_node = NULL,
-        .key_value = (hash_key_value)
+        .key_value = (hash_key_value_t)
         {
             .key = key,
             .value = value
@@ -211,7 +211,7 @@ void hash_set(hash_table_t* table, const char* key, void* value)
     last_node->next_node = new_node;
 }
 
-void* hash_get(hash_table_t* table, const char* key)
+const void* hash_get(hash_table_t* table, const char* key)
 {
     size_t hashed_key = hash_key(key);
     hash_linked_list_t* node_first = &table->data[hashed_key % table->size];
@@ -244,7 +244,7 @@ const char** hash_get_all_keys(hash_table_t* table)
 
     if (inserted_items_count != table->current_occupancy)
     {
-        fprintf(stderr, "hash table corrupted. keys are either in excess or are missing.\n");
+        fprintf(stderr, "hash table corrupted. Found %lu items out of supposed %lu items.\n", inserted_items_count, table->current_occupancy);
     }
     return all_keys;
 }
@@ -271,10 +271,38 @@ const void** hash_get_all_values(hash_table_t* table)
 
     if (inserted_items_count != table->current_occupancy)
     {
-        fprintf(stderr, "hash table corrupted. values are either in excess or are missing.\n");
+        fprintf(stderr, "hash table corrupted. Found %lu items out of supposed %lu items.\n", inserted_items_count, table->current_occupancy);
     }
 
     return all_values;
+}
+
+hash_key_value_t* hash_get_all_key_values(hash_table_t* table)
+{
+    hash_key_value_t* all_key_values = malloc(table->current_occupancy * sizeof(void*));
+
+    size_t inserted_items_count = 0;
+
+    for (size_t i = 0; i < table->size; ++i)
+    {
+        hash_linked_list_t* current_node = &table->data[i];
+        while (current_node != NULL)
+        {
+            if (current_node->key_value.value != NULL)
+            {
+                all_key_values[inserted_items_count] = current_node->key_value;
+                ++inserted_items_count;
+            }
+            current_node = current_node->next_node;
+        }
+    }
+
+    if (inserted_items_count != table->current_occupancy)
+    {
+        fprintf(stderr, "hash table corrupted. Found %lu items out of supposed %lu items.\n", inserted_items_count, table->current_occupancy);
+    }
+
+    return all_key_values;
 }
 
 #endif /* HASH_IMPLEMENTATION */
