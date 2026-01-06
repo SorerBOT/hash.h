@@ -2,7 +2,7 @@
 #include "external/cunit.h"
 
 #define HASH_IMPLEMENTATION
-#include "../lib/hash.h"
+#include "../src/hash.h"
 
 CUNIT_TEST(hash)
 {
