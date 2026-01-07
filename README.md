@@ -9,7 +9,7 @@ This library is fragment of a broader pedagogical agenda I currently hold, where
 * Header Only: file is single and ready to mingle! 😉
 
 ## How does it work?
-* Collisions are handlded via separate chaining.
+* Collisions are handled via separate chaining.
 * Values are stored as `void` pointers.
 
 ## Usage Example
