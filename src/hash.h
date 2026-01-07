@@ -101,7 +101,7 @@ static hash_linked_list_t* hash__internal_find_last_node(hash_linked_list_t* nod
 static void hash__internal_expand_table(hash_table_t* table)
 {
     size_t new_size = table->size * HASH_EXPANSION_RATE;
-    hash_linked_list_t* new_data = malloc(new_size * sizeof(hash_linked_list_t));
+    hash_linked_list_t* new_data = calloc(new_size, sizeof(hash_linked_list_t));
     hash_key_value_t* key_values = hash_get_all_key_values(table);
 
     for (size_t i = 0; i < table->current_occupancy; ++i)
@@ -172,18 +172,11 @@ static void hash__internal_set_in_data(hash_linked_list_t* data, size_t size, co
 
 hash_table_t* hash_init()
 {
-    hash_linked_list_t* data = malloc(HASH_INITIAL_SIZE * sizeof(hash_linked_list_t));
+    hash_linked_list_t* data = calloc(HASH_INITIAL_SIZE, sizeof(hash_linked_list_t));
     if (data == NULL)
     {
         perror("malloc()");
         exit(EXIT_FAILURE);
-    }
-
-    for (size_t i = 0; i < HASH_INITIAL_SIZE; ++i)
-    {
-        data[i].next_node = NULL;
-        data[i].key_value.key = NULL;
-        data[i].key_value.value = NULL;
     }
 
     hash_table_t* table = malloc(sizeof(hash_table_t));
@@ -348,7 +341,7 @@ const void** hash_get_all_values(hash_table_t* table)
 
 hash_key_value_t* hash_get_all_key_values(hash_table_t* table)
 {
-    hash_key_value_t* all_key_values = malloc(table->current_occupancy * sizeof(void*));
+    hash_key_value_t* all_key_values = malloc(table->current_occupancy * sizeof(hash_key_value_t));
 
     size_t inserted_items_count = 0;
 
@@ -357,7 +350,7 @@ hash_key_value_t* hash_get_all_key_values(hash_table_t* table)
         hash_linked_list_t* current_node = &table->data[i];
         while (current_node != NULL)
         {
-            if (current_node->key_value.value != NULL)
+            if (current_node->key_value.key != NULL)
             {
                 all_key_values[inserted_items_count] = current_node->key_value;
                 ++inserted_items_count;

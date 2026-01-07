@@ -14,10 +14,10 @@ CUNIT_TEST(hash)
 
     char* keys[] =
     {
-        "sha256__",
-        "cool_key",
-        "boop____",
-        "loop____"
+        "sha256",
+        "coolkey",
+        "boop",
+        "loop"
     };
 
     int values[] =
