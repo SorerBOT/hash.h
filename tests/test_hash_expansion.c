@@ -25,4 +25,11 @@ CUNIT_TEST(hash)
     }
 
     CUNIT_ASSERT_INT_EQ(table->size, 512);
+
+    for (size_t i = 0; i < ITEMS_COUNT; ++i)
+    {
+        const size_t* val = hash_get(table, keys[i]);
+        CUNIT_ASSERT_PTR_NOT_NULL(val);
+        CUNIT_ASSERT_INT_EQ(*val, values[i]);
+    }
 }
