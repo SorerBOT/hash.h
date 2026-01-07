@@ -326,14 +326,21 @@ hash_key_value_t* hash_get_all_key_values(hash_table_t* table)
     return all_key_values;
 }
 
-//void hash_free(hash_table_t* table)
-//{
-//    for (size_t i = 0; i < table->size; ++i)
-//    {
-//        hash_linked_list_t* current_node = table->data[i];
-//        table->data[i];
-//    }
-//    free(table);
-//}
+void hash_free(hash_table_t* table)
+{
+    for (size_t i = 0; i < table->size; ++i)
+    {
+        hash_linked_list_t* current_node = table->data[i];
+        while (current_node != NULL)
+        {
+            hash_linked_list_t* tmp = current_node;
+            current_node = current_node->next_node;
+            free(tmp);
+        }
+    }
+
+    free(table->data);
+    free(table);
+}
 
 #endif /* HASH_IMPLEMENTATION */
