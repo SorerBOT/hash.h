@@ -15,16 +15,19 @@ This library is fragment of a broader pedagogical agenda I currently hold, where
 ## Usage Example
 ```c
 #define HASH_IMPLEMENTATION
-#include ".../hash.h"
+#include "../src/hash.h"
 
 int main()
 {
-    hash_table_t* table = hash_init();
     int my_favorite_number = 7;
-    hash_set(table, "My Favorite Number", &x);
+    const int* value = NULL;
 
-    const int* value = hash_get(table, "My Favorite Number");
-    printf("My favorite number is: %d\n", *value);
+    hash_table_t* table = hash_init();
+    hash_set(table, "My Favorite Number", &my_favorite_number);
+    value = hash_get(table, "My Favorite Number");
+    printf("My favorite number is: %d\n", *value); // My favorite number is: 7
+
     return 0;
 }
+
 ```
