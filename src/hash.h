@@ -172,18 +172,11 @@ static void hash__internal_set_in_data(hash_linked_list_t* data, size_t size, co
 
 hash_table_t* hash_init()
 {
-    hash_linked_list_t* data = malloc(HASH_INITIAL_SIZE * sizeof(hash_linked_list_t));
+    hash_linked_list_t* data = calloc(HASH_INITIAL_SIZE, sizeof(hash_linked_list_t));
     if (data == NULL)
     {
         perror("malloc()");
         exit(EXIT_FAILURE);
-    }
-
-    for (size_t i = 0; i < HASH_INITIAL_SIZE; ++i)
-    {
-        data[i].next_node = NULL;
-        data[i].key_value.key = NULL;
-        data[i].key_value.value = NULL;
     }
 
     hash_table_t* table = malloc(sizeof(hash_table_t));
