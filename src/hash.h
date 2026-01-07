@@ -5,7 +5,6 @@
 #define HASH_EXPANSION_RATE 2
 #define HASH_OCCUPANY_RATE 3
 
-
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -27,7 +26,7 @@ typedef struct
 {
     size_t size;
     size_t current_occupancy;
-    hash_linked_list_t* data; /* array of linked lists, each linked list contains all colliding keys */
+    hash_linked_list_t** data; /* array of linked lists, each linked list contains all colliding keys */
 } hash_table_t;
 
 
@@ -38,6 +37,7 @@ const void* hash_get(hash_table_t* table, const char* key);
 const char** hash_get_all_keys(hash_table_t* table);
 const void** hash_get_all_values(hash_table_t* table);
 hash_key_value_t* hash_get_all_key_values(hash_table_t* table);
+void hash_free(hash_table_t* table);
 
 #endif /* HASH_H */
 
@@ -47,7 +47,7 @@ static hash_linked_list_t* hash__internal_find_key_in_list(hash_linked_list_t* n
 static hash_linked_list_t* hash__internal_find_first_empty_node(hash_linked_list_t* node_first);
 static hash_linked_list_t* hash__internal_find_last_node(hash_linked_list_t* node_first);
 static void hash__internal_expand_table(hash_table_t* table);
-static void hash__internal_set_in_data(hash_linked_list_t* data, size_t size, const char* key, const void* value);
+static void hash__internal_set_in_data(hash_linked_list_t** data, size_t size, const char* key, const void* value, size_t* current_occupancy);
 
 static hash_linked_list_t* hash__internal_find_key_in_list(hash_linked_list_t* node_first, const char* key)
 {
@@ -101,13 +101,13 @@ static hash_linked_list_t* hash__internal_find_last_node(hash_linked_list_t* nod
 static void hash__internal_expand_table(hash_table_t* table)
 {
     size_t new_size = table->size * HASH_EXPANSION_RATE;
-    hash_linked_list_t* new_data = calloc(new_size, sizeof(hash_linked_list_t));
+    hash_linked_list_t** new_data = calloc(new_size, sizeof(hash_linked_list_t*));
     hash_key_value_t* key_values = hash_get_all_key_values(table);
 
     for (size_t i = 0; i < table->current_occupancy; ++i)
     {
         hash_key_value_t key_value = key_values[i];
-        hash__internal_set_in_data(new_data, new_size, key_value.key, key_value.value);
+        hash__internal_set_in_data(new_data, new_size, key_value.key, key_value.value, NULL);
     }
 
     free(table->data);
@@ -116,16 +116,21 @@ static void hash__internal_expand_table(hash_table_t* table)
     table->size = new_size;
 }
 
-static void hash__internal_set_in_data(hash_linked_list_t* data, size_t size, const char* key, const void* value)
+static void hash__internal_set_in_data(hash_linked_list_t** data, size_t size, const char* key, const void* value, size_t* current_occupancy)
 {
     size_t hashed_key = hash_key(key);
-    hash_linked_list_t* node_first = &data[hashed_key % size];
+    hash_linked_list_t* node_first = data[hashed_key % size];
 
     hash_linked_list_t* entry = hash__internal_find_key_in_list(node_first, key);
     if (entry != NULL)
     {
         entry->key_value.value = value;
         return;
+    }
+
+    if (current_occupancy != NULL)
+    {
+        *current_occupancy += 1;
     }
 
     hash_linked_list_t* first_empty_node = hash__internal_find_first_empty_node(node_first);
@@ -141,13 +146,6 @@ static void hash__internal_set_in_data(hash_linked_list_t* data, size_t size, co
             .next_node = NULL
         };
         return;
-    }
-
-    hash_linked_list_t* last_node = hash__internal_find_last_node(node_first);
-    if (last_node == NULL)
-    {
-        fprintf(stderr, "hash table corrupted. item is empty\n");
-        exit(EXIT_FAILURE);
     }
 
     hash_linked_list_t* new_node = malloc(sizeof(hash_linked_list_t));
@@ -167,12 +165,20 @@ static void hash__internal_set_in_data(hash_linked_list_t* data, size_t size, co
         }
     };
 
-    last_node->next_node = new_node;
+    hash_linked_list_t* last_node = hash__internal_find_last_node(node_first);
+    if (last_node == NULL)
+    {
+        data[hashed_key % size] = new_node;
+    }
+    else
+    {
+        last_node->next_node = new_node;
+    }
 }
 
 hash_table_t* hash_init()
 {
-    hash_linked_list_t* data = calloc(HASH_INITIAL_SIZE, sizeof(hash_linked_list_t));
+    hash_linked_list_t** data = calloc(HASH_INITIAL_SIZE, sizeof(hash_linked_list_t*));
     if (data == NULL)
     {
         perror("malloc()");
@@ -212,69 +218,21 @@ size_t hash_key(const char* key)
 
 void hash_set(hash_table_t* table, const char* key, void* value)
 {
-    if (table->current_occupancy / (float)table->size >= HASH_OCCUPANY_RATE)
+#ifdef HASH_DEBUG
+    printf("Setting %s = ???\n. Current occupancy: %lu, table size: %lu, current_occupancy + 1 / size = %f\n", key, table->current_occupancy, table->size, (table->current_occupancy + 1.f) / (float)table->size);
+#endif
+
+    if ((table->current_occupancy + 1.f) / (float)table->size >= HASH_OCCUPANY_RATE)
     {
         hash__internal_expand_table(table);
     }
-
-    size_t hashed_key = hash_key(key);
-    hash_linked_list_t* node_first = &table->data[hashed_key % table->size];
-
-    hash_linked_list_t* entry = hash__internal_find_key_in_list(node_first, key);
-    if (entry != NULL)
-    {
-        entry->key_value.value = value;
-        return;
-    }
-
-    table->current_occupancy++;
-
-    hash_linked_list_t* first_empty_node = hash__internal_find_first_empty_node(node_first);
-    if (first_empty_node != NULL)
-    {
-        *first_empty_node = (hash_linked_list_t)
-        {
-            .key_value = (hash_key_value_t)
-            {
-                .key = key,
-                .value = value
-            },
-            .next_node = NULL
-        };
-        return;
-    }
-
-    hash_linked_list_t* last_node = hash__internal_find_last_node(node_first);
-    if (last_node == NULL)
-    {
-        fprintf(stderr, "hash table corrupted. item is empty\n");
-        exit(EXIT_FAILURE);
-    }
-
-    hash_linked_list_t* new_node = malloc(sizeof(hash_linked_list_t));
-    if (new_node == NULL)
-    {
-        perror("malloc()");
-        exit(EXIT_FAILURE);
-    }
-
-    *new_node = (hash_linked_list_t)
-    {
-        .next_node = NULL,
-        .key_value = (hash_key_value_t)
-        {
-            .key = key,
-            .value = value
-        }
-    };
-
-    last_node->next_node = new_node;
+    hash__internal_set_in_data(table->data, table->size, key, value, &table->current_occupancy);
 }
 
 const void* hash_get(hash_table_t* table, const char* key)
 {
     size_t hashed_key = hash_key(key);
-    hash_linked_list_t* node_first = &table->data[hashed_key % table->size];
+    hash_linked_list_t* node_first = table->data[hashed_key % table->size];
     hash_linked_list_t* sought_item = hash__internal_find_key_in_list(node_first, key);
     if (sought_item == NULL)
     {
@@ -290,7 +248,7 @@ const char** hash_get_all_keys(hash_table_t* table)
 
     for (size_t i = 0; i < table->size; ++i)
     {
-        hash_linked_list_t* current_node = &table->data[i];
+        hash_linked_list_t* current_node = table->data[i];
         while (current_node != NULL)
         {
             if (current_node->key_value.key != NULL)
@@ -318,7 +276,7 @@ const void** hash_get_all_values(hash_table_t* table)
 
     for (size_t i = 0; i < table->size; ++i)
     {
-        hash_linked_list_t* current_node = &table->data[i];
+        hash_linked_list_t* current_node = table->data[i];
         while (current_node != NULL)
         {
             if (current_node->key_value.value != NULL)
@@ -347,7 +305,7 @@ hash_key_value_t* hash_get_all_key_values(hash_table_t* table)
 
     for (size_t i = 0; i < table->size; ++i)
     {
-        hash_linked_list_t* current_node = &table->data[i];
+        hash_linked_list_t* current_node = table->data[i];
         while (current_node != NULL)
         {
             if (current_node->key_value.key != NULL)
@@ -367,5 +325,15 @@ hash_key_value_t* hash_get_all_key_values(hash_table_t* table)
 
     return all_key_values;
 }
+
+//void hash_free(hash_table_t* table)
+//{
+//    for (size_t i = 0; i < table->size; ++i)
+//    {
+//        hash_linked_list_t* current_node = table->data[i];
+//        table->data[i];
+//    }
+//    free(table);
+//}
 
 #endif /* HASH_IMPLEMENTATION */
