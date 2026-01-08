@@ -27,8 +27,24 @@
 #define HASH_EXPANSION_RATE 2
 #define HASH_OCCUPANY_RATE 3
 
+#if defined(HASH_MALLOC) || defined(HASH_CALLOC) || defined(HASH_FREE)
+    #ifndef HASH_MALLOC
+        #error "If the user seeks to provide malloc(), he must also provide calloc() and free()"
+    #endif
+    #ifndef HASH_CALLOC
+        #error "If the user seeks to provide calloc(), he must also provide malloc() and free()"
+    #endif
+    #ifndef HASH_FREE
+        #error "If the user seeks to provide free(), he must also provide malloc() and calloc()"
+    #endif
+#else
+    #include <stdlib.h>
+    #define HASH_MALLOC malloc
+    #define HASH_CALLOC calloc
+    #define HASH_FREE free
+#endif
+
 #include <stddef.h>
-#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -123,7 +139,7 @@ static hash_linked_list_t* hash__internal_find_last_node(hash_linked_list_t* nod
 static void hash__internal_expand_table(hash_table_t* table)
 {
     size_t new_size = table->size * HASH_EXPANSION_RATE;
-    hash_linked_list_t** new_data = calloc(new_size, sizeof(hash_linked_list_t*));
+    hash_linked_list_t** new_data = HASH_CALLOC(new_size, sizeof(hash_linked_list_t*));
     hash_key_value_t* key_values = hash_get_all_key_values(table);
 
     for (size_t i = 0; i < table->current_occupancy; ++i)
@@ -132,7 +148,7 @@ static void hash__internal_expand_table(hash_table_t* table)
         hash__internal_set_in_data(new_data, new_size, key_value.key, key_value.value, NULL);
     }
 
-    free(table->data);
+    HASH_FREE(table->data);
 
     table->data = new_data;
     table->size = new_size;
@@ -170,7 +186,7 @@ static void hash__internal_set_in_data(hash_linked_list_t** data, size_t size, c
         return;
     }
 
-    hash_linked_list_t* new_node = malloc(sizeof(hash_linked_list_t));
+    hash_linked_list_t* new_node = HASH_MALLOC(sizeof(hash_linked_list_t));
     if (new_node == NULL)
     {
         perror("malloc()");
@@ -200,14 +216,14 @@ static void hash__internal_set_in_data(hash_linked_list_t** data, size_t size, c
 
 hash_table_t* hash_init()
 {
-    hash_linked_list_t** data = calloc(HASH_INITIAL_SIZE, sizeof(hash_linked_list_t*));
+    hash_linked_list_t** data = HASH_CALLOC(HASH_INITIAL_SIZE, sizeof(hash_linked_list_t*));
     if (data == NULL)
     {
         perror("malloc()");
         exit(EXIT_FAILURE);
     }
 
-    hash_table_t* table = malloc(sizeof(hash_table_t));
+    hash_table_t* table = HASH_MALLOC(sizeof(hash_table_t));
 
     if (table == NULL)
     {
@@ -265,7 +281,7 @@ const void* hash_get(hash_table_t* table, const char* key)
 
 const char** hash_get_all_keys(hash_table_t* table)
 {
-    const char** all_keys = malloc(table->current_occupancy * sizeof(char*));
+    const char** all_keys = HASH_MALLOC(table->current_occupancy * sizeof(char*));
     size_t inserted_items_count = 0;
 
     for (size_t i = 0; i < table->size; ++i)
@@ -292,7 +308,7 @@ const char** hash_get_all_keys(hash_table_t* table)
 
 const void** hash_get_all_values(hash_table_t* table)
 {
-    const void** all_values = malloc(table->current_occupancy * sizeof(void*));
+    const void** all_values = HASH_MALLOC(table->current_occupancy * sizeof(void*));
 
     size_t inserted_items_count = 0;
 
@@ -321,7 +337,7 @@ const void** hash_get_all_values(hash_table_t* table)
 
 hash_key_value_t* hash_get_all_key_values(hash_table_t* table)
 {
-    hash_key_value_t* all_key_values = malloc(table->current_occupancy * sizeof(hash_key_value_t));
+    hash_key_value_t* all_key_values = HASH_MALLOC(table->current_occupancy * sizeof(hash_key_value_t));
 
     size_t inserted_items_count = 0;
 
@@ -357,12 +373,12 @@ void hash_free(hash_table_t* table)
         {
             hash_linked_list_t* tmp = current_node;
             current_node = current_node->next_node;
-            free(tmp);
+            HASH_FREE(tmp);
         }
     }
 
-    free(table->data);
-    free(table);
+    HASH_FREE(table->data);
+    HASH_FREE(table);
 }
 
 #endif /* HASH_IMPLEMENTATION */
