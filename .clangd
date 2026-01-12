@@ -6,12 +6,9 @@ CompileFlags:
     # Set the standard to C99
     - -std=c99
     - -DHASH_IMPLEMENTATION
-<<<<<<< Updated upstream
-=======
-    - -DGCY_IMPLEMENTATION
-    - -DGCY_MODE 1
     - -DCUNIT_IMPLEMENTATION
->>>>>>> Stashed changes
+    - -DGCY_IMPLEMENTATION
+    - -DGCY_MODE
     - -Iexternal
     - -Iinclude
 
