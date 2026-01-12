@@ -81,4 +81,6 @@ CUNIT_TEST(hash)
         all_values_dereferenced[i] = *all_values[i];
     }
     CUNIT_ASSERT_ARRAY_IS_PERMUTATION(all_values_dereferenced, final_values, sizeof(int), 4);
+
+    hash_free(table);
 }
