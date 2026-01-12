@@ -44,3 +44,7 @@ int main()
 
     return 0;
 }
+```
+
+## Where does the hashing function come from?
+I'm working on reading Carter & Wegman's paper: Universal Classes of Hash Functions which contains details that are helpful for the construction of a universal hash function, and the necessary proofs to justify why one would want to use such a hash function. **When I am finished**, I plan to implement construct a universal hash function based on those principals.
