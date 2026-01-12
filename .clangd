@@ -6,8 +6,9 @@ CompileFlags:
     # Set the standard to C99
     - -std=c99
     - -DHASH_IMPLEMENTATION
-    - -DGCY_IMPLEMENTATION
     - -DCUNIT_IMPLEMENTATION
+    - -DGCY_IMPLEMENTATION
+    - -DGCY_MODE
     - -Iexternal
     - -Iinclude
 
