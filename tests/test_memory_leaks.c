@@ -43,5 +43,5 @@ CUNIT_TEST(hash_memory_leaks)
         CUNIT_ASSERT_INT_EQ(*val, values[i]);
     }
 
-    //hash_free(table);
+    hash_free(table);
 }

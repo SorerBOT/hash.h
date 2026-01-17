@@ -32,4 +32,6 @@ CUNIT_TEST(hash_expansion)
         CUNIT_ASSERT_PTR_NOT_NULL(val);
         CUNIT_ASSERT_INT_EQ(*val, values[i]);
     }
+
+    hash_free(table);
 }
