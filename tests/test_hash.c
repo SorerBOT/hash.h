@@ -75,9 +75,7 @@ CUNIT_TEST(hash)
 
     const char** all_keys = hash_get_all_keys(table);
     CUNIT_ASSERT_ARRAY_STRINGS_IS_PERMUTATION(keys, all_keys, 4);
-    printf("all_keys = %p\n", all_keys);
     GCY_FREE(all_keys);
-    printf("all_keys was freed\n");
 
     const int** all_values = (const int**) hash_get_all_values(table);
     int* all_values_dereferenced = malloc(table->current_occupancy * sizeof(int));
