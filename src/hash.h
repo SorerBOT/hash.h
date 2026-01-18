@@ -73,8 +73,8 @@ typedef struct
 
 hash_table_t* hash_init(hash_func_t hash_func);
 size_t hash_func_string(const void* _key);
-void hash_set(hash_table_t* table, const char* key, void* value);
-const void* hash_get(hash_table_t* table, const char* key);
+void hash_set(hash_table_t* table, const void* key, void* value);
+const void* hash_get(hash_table_t* table, const void* key);
 const char** hash_get_all_keys(hash_table_t* table);
 const void** hash_get_all_values(hash_table_t* table);
 hash_key_value_t* hash_get_all_key_values(hash_table_t* table);
@@ -266,7 +266,7 @@ size_t hash_func_string(const void* _key)
     return hash;
 }
 
-void hash_set(hash_table_t* table, const char* key, void* value)
+void hash_set(hash_table_t* table, const void* key, void* value)
 {
 #ifdef HASH_DEBUG
     printf("Setting %s = ???\n. Current occupancy: %lu, table size: %lu, current_occupancy + 1 / size = %f\n", key, table->current_occupancy, table->size, (table->current_occupancy + 1.f) / (float)table->size);
@@ -279,7 +279,7 @@ void hash_set(hash_table_t* table, const char* key, void* value)
     hash__internal_set_in_data(table->hash_func, table->data, table->size, key, value, &table->current_occupancy);
 }
 
-const void* hash_get(hash_table_t* table, const char* key)
+const void* hash_get(hash_table_t* table, const void* key)
 {
     size_t hashed_key = table->hash_func(key);
     hash_linked_list_t* node_first = table->data[hashed_key % table->size];
