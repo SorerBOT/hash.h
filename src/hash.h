@@ -148,6 +148,7 @@ static void hash__internal_expand_table(hash_table_t* table)
         hash__internal_set_in_data(new_data, new_size, key_value.key, key_value.value, NULL);
     }
 
+    HASH_FREE(key_values);
     HASH_FREE(table->data);
 
     table->data = new_data;
