@@ -6,7 +6,7 @@
 
 CUNIT_TEST(hash)
 {
-    hash_table_t* table = hash_init();
+    hash_table_t* table = hash_init(NULL);
     CUNIT_ASSERT_PTR_NOT_NULL(table);
     CUNIT_ASSERT_INT_EQ(table->size, HASH_INITIAL_SIZE);
     CUNIT_ASSERT_INT_EQ(table->current_occupancy, 0);
