@@ -60,18 +60,21 @@ typedef struct _hash_linked_list_t
     hash_key_value_t key_value;
 } hash_linked_list_t;
 
+typedef size_t (*hash_func_t)(const void*);
+
 typedef struct
 {
+    hash_func_t hash_func;
     size_t size;
     size_t current_occupancy;
     hash_linked_list_t** data; /* array of linked lists, each linked list contains all colliding keys */
 } hash_table_t;
 
 
-hash_table_t* hash_init();
-size_t hash_key(const char* key);
-void hash_set(hash_table_t* table, const char* key, void* value);
-const void* hash_get(hash_table_t* table, const char* key);
+hash_table_t* hash_init(hash_func_t hash_func);
+size_t hash_func_string(const void* _key);
+void hash_set(hash_table_t* table, const void* key, void* value);
+const void* hash_get(hash_table_t* table, const void* key);
 const char** hash_get_all_keys(hash_table_t* table);
 const void** hash_get_all_values(hash_table_t* table);
 hash_key_value_t* hash_get_all_key_values(hash_table_t* table);
@@ -85,7 +88,7 @@ static hash_linked_list_t* hash__internal_find_key_in_list(hash_linked_list_t* n
 static hash_linked_list_t* hash__internal_find_first_empty_node(hash_linked_list_t* node_first);
 static hash_linked_list_t* hash__internal_find_last_node(hash_linked_list_t* node_first);
 static void hash__internal_expand_table(hash_table_t* table);
-static void hash__internal_set_in_data(hash_linked_list_t** data, size_t size, const char* key, const void* value, size_t* current_occupancy);
+static void hash__internal_set_in_data(hash_func_t hash_func, hash_linked_list_t** data, size_t size, const char* key, const void* value, size_t* current_occupancy);
 static void hash__internal_free_data(hash_linked_list_t** data, size_t size);
 
 static hash_linked_list_t* hash__internal_find_key_in_list(hash_linked_list_t* node_first, const char* key)
@@ -146,7 +149,7 @@ static void hash__internal_expand_table(hash_table_t* table)
     for (size_t i = 0; i < table->current_occupancy; ++i)
     {
         hash_key_value_t key_value = key_values[i];
-        hash__internal_set_in_data(new_data, new_size, key_value.key, key_value.value, NULL);
+        hash__internal_set_in_data(table->hash_func, new_data, new_size, key_value.key, key_value.value, NULL);
     }
 
     HASH_FREE(key_values);
@@ -156,9 +159,9 @@ static void hash__internal_expand_table(hash_table_t* table)
     table->size = new_size;
 }
 
-static void hash__internal_set_in_data(hash_linked_list_t** data, size_t size, const char* key, const void* value, size_t* current_occupancy)
+static void hash__internal_set_in_data(hash_func_t hash_func, hash_linked_list_t** data, size_t size, const char* key, const void* value, size_t* current_occupancy)
 {
-    size_t hashed_key = hash_key(key);
+    size_t hashed_key = hash_func(key);
     hash_linked_list_t* node_first = data[hashed_key % size];
 
     hash_linked_list_t* entry = hash__internal_find_key_in_list(node_first, key);
@@ -216,7 +219,7 @@ static void hash__internal_set_in_data(hash_linked_list_t** data, size_t size, c
     }
 }
 
-hash_table_t* hash_init()
+hash_table_t* hash_init(hash_func_t hash_func)
 {
     hash_linked_list_t** data = HASH_CALLOC(HASH_INITIAL_SIZE, sizeof(hash_linked_list_t*));
     if (data == NULL)
@@ -235,16 +238,23 @@ hash_table_t* hash_init()
 
     *table = (hash_table_t)
     {
+        .hash_func = hash_func,
         .current_occupancy = 0,
         .size = HASH_INITIAL_SIZE,
         .data = data
     };
 
+    if (hash_func == NULL)
+    {
+        table->hash_func = hash_func_string;
+    }
+
     return table;
 }
 
-size_t hash_key(const char* key)
+size_t hash_func_string(const void* _key)
 {
+    const char* key = _key;
     size_t len = strlen(key);
     size_t hash = 0;
 
@@ -256,7 +266,7 @@ size_t hash_key(const char* key)
     return hash;
 }
 
-void hash_set(hash_table_t* table, const char* key, void* value)
+void hash_set(hash_table_t* table, const void* key, void* value)
 {
 #ifdef HASH_DEBUG
     printf("Setting %s = ???\n. Current occupancy: %lu, table size: %lu, current_occupancy + 1 / size = %f\n", key, table->current_occupancy, table->size, (table->current_occupancy + 1.f) / (float)table->size);
@@ -266,12 +276,12 @@ void hash_set(hash_table_t* table, const char* key, void* value)
     {
         hash__internal_expand_table(table);
     }
-    hash__internal_set_in_data(table->data, table->size, key, value, &table->current_occupancy);
+    hash__internal_set_in_data(table->hash_func, table->data, table->size, key, value, &table->current_occupancy);
 }
 
-const void* hash_get(hash_table_t* table, const char* key)
+const void* hash_get(hash_table_t* table, const void* key)
 {
-    size_t hashed_key = hash_key(key);
+    size_t hashed_key = table->hash_func(key);
     hash_linked_list_t* node_first = table->data[hashed_key % table->size];
     hash_linked_list_t* sought_item = hash__internal_find_key_in_list(node_first, key);
     if (sought_item == NULL)
