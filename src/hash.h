@@ -86,6 +86,7 @@ static hash_linked_list_t* hash__internal_find_first_empty_node(hash_linked_list
 static hash_linked_list_t* hash__internal_find_last_node(hash_linked_list_t* node_first);
 static void hash__internal_expand_table(hash_table_t* table);
 static void hash__internal_set_in_data(hash_linked_list_t** data, size_t size, const char* key, const void* value, size_t* current_occupancy);
+static void hash__internal_free_data(hash_linked_list_t** data, size_t size);
 
 static hash_linked_list_t* hash__internal_find_key_in_list(hash_linked_list_t* node_first, const char* key)
 {
@@ -149,7 +150,7 @@ static void hash__internal_expand_table(hash_table_t* table)
     }
 
     HASH_FREE(key_values);
-    HASH_FREE(table->data);
+    hash__internal_free_data(table->data, table->size);
 
     table->data = new_data;
     table->size = new_size;
@@ -365,11 +366,11 @@ hash_key_value_t* hash_get_all_key_values(hash_table_t* table)
     return all_key_values;
 }
 
-void hash_free(hash_table_t* table)
+static void hash__internal_free_data(hash_linked_list_t** data, size_t size)
 {
-    for (size_t i = 0; i < table->size; ++i)
+    for (size_t i = 0; i < size; ++i)
     {
-        hash_linked_list_t* current_node = table->data[i];
+        hash_linked_list_t* current_node = data[i];
         while (current_node != NULL)
         {
             hash_linked_list_t* tmp = current_node;
@@ -377,8 +378,12 @@ void hash_free(hash_table_t* table)
             HASH_FREE(tmp);
         }
     }
+    HASH_FREE(data);
+}
 
-    HASH_FREE(table->data);
+void hash_free(hash_table_t* table)
+{
+    hash__internal_free_data(table->data, table->size);
     HASH_FREE(table);
 }
 
