@@ -1,4 +1,6 @@
 #include "external/cunit.h"
+#define GCY_MODE 1
+#include "external/gcy.h"
 
 #include "../src/hash.h"
 
@@ -73,6 +75,9 @@ CUNIT_TEST(hash)
 
     const char** all_keys = hash_get_all_keys(table);
     CUNIT_ASSERT_ARRAY_STRINGS_IS_PERMUTATION(keys, all_keys, 4);
+    printf("all_keys = %p\n", all_keys);
+    GCY_FREE(all_keys);
+    printf("all_keys was freed\n");
 
     const int** all_values = (const int**) hash_get_all_values(table);
     int* all_values_dereferenced = malloc(table->current_occupancy * sizeof(int));
@@ -80,6 +85,7 @@ CUNIT_TEST(hash)
     {
         all_values_dereferenced[i] = *all_values[i];
     }
+    GCY_FREE(all_values);
     CUNIT_ASSERT_ARRAY_IS_PERMUTATION(all_values_dereferenced, final_values, sizeof(int), 4);
 
     hash_free(table);

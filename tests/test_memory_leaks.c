@@ -9,7 +9,7 @@
 
 #define HASH_MALLOC GCY_MALLOC
 #define HASH_CALLOC GCY_CALLOC
-#define HASH_FREE   GCY_FREE
+#define HASH_FREE GCY_FREE
 
 #define HASH_IMPLEMENTATION
 #include "../src/hash.h"
@@ -18,7 +18,6 @@
 
 CUNIT_TEST(hash_memory_leaks)
 {
-    GCY_MALLOC(69);
     hash_table_t* table = hash_init();
     CUNIT_ASSERT_PTR_NOT_NULL(table);
     CUNIT_ASSERT_INT_EQ(table->size, HASH_INITIAL_SIZE);
