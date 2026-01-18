@@ -11,7 +11,7 @@ This library is fragment of a broader pedagogical agenda I currently hold, where
 ## How does it work?
 * Collisions are handled via separate chaining:
 ```text
-+--------+
+       +--------+
  Index | Buckets|
        +--------+
    0   |  NULL  |
