@@ -50,7 +50,7 @@
 
 typedef struct
 {
-    const char* key;
+    const void* key;
     const void* value;
 } hash_key_value_t;
 
