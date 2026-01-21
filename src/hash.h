@@ -256,11 +256,12 @@ size_t hash_func_string(const void* _key)
 {
     const char* key = _key;
     size_t len = strlen(key);
-    size_t hash = 0;
+
+    size_t hash = 5381;
 
     for (size_t i = 0; i < len; ++i)
     {
-        hash += (i << 2) * key[i];
+        hash += (hash << 5) * key[i];
     }
 
     return hash;
